@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app); 
 const io = new Server(server, {
     cors: {
-      origin: "http://localhost:5173", 
+      origin: "https://banko-production.up.railway.app/", 
       methods: ["GET", "POST", "PUT"] 
     }
   });
@@ -22,7 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 connectDB().then(() => {
-  server.listen(3000, "0.0.0.0", () => {
+  server.listen(8000, "0.0.0.0", () => {
     console.log('Server is running on port 8000');
   });
 });
