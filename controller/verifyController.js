@@ -217,7 +217,8 @@ const GetBalance = async (req, res) => {
           if (!wallet) {
             return res.status(404).json({ error: 'Wallet not found' });
           }
-          res.json({ balance: wallet.balance });
+          res.json({ balance: wallet.balance, accountNum:wallet.accountNumber });
+          // console.log(wallet.accountNumber)
         } catch (error) {
           res.status(500).json({ error: 'Internal server error' });
         }

@@ -3,17 +3,24 @@ dotenv.config();
 const nodemailer = require('nodemailer');
 
 const convertPhoneToISO = (number, countryCode = "234") => {
-    if (!number) return "";
-    if (number.substring(0, 4) === `+${countryCode}`) {
-      return number;
-    } else if (number.substring(0, 3) === countryCode) {
-      return `+${number}`;
-    } else if (number.charAt(0) === "0") {
-      return `+${countryCode}${number.slice(1)}`;
-    } else {
-      return null;
-    }
-  };
+  if (!number) return "";
+  const cleaned = number.replace(/[^0-9+]/g, "");
+  const normalized = cleaned.replace(/^\++/, "+");
+  if (normalized.startsWith(`+${countryCode}`)) {
+    return normalized;
+  }
+  if (normalized.startsWith(countryCode)) {
+    return `+${normalized}`;
+  }
+  if (normalized.startsWith("0")) {
+    return `+${countryCode}${normalized.slice(1)}`;
+  }
+  if (/^\d+$/.test(normalized)) {
+    return `+${countryCode}${normalized}`;
+  }
+  return null;
+};
+
 
   function generateAccountNumber() {
     let accountNumber = '';

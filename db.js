@@ -1,9 +1,7 @@
 
 const mongoose = require('mongoose');
 require('dotenv').config();
-// const url = "mngodb+srv://banko:mybanko123@cluster0.to9arvf.mongodb.net/";
 const url = process.env.DB_URL;
-
 
 async function connectDB() {
     try {
