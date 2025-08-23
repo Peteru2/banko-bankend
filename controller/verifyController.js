@@ -63,14 +63,17 @@ const Post_signUp = async (req, res) =>{
             user: user._id,
             accountNumber: newAccountNumber, 
         });
-        const check =  await User.findOne({email:email})
+        const checkMail =  await User.findOne({email:email})
+        const checkNum =  await User.findOne({phoneNumber:formattedPhoneNumber})
         const checkAccNum = await Wallet.findOne({accountNumber: newAccountNumber,})
        
 
-        if (check){
+        if (checkMail){
             return res.status(401).json({error:"This email already exist"})
         }
-      
+      if (checkNum){
+            return res.status(401).json({error:"This phone number already exist"})
+        }
         if(checkAccNum){
             generateAccountNumber();
         }
@@ -201,7 +204,7 @@ const UpdateKyc = async (req, res) => {
               return res.status(400).json({ error: 'BVN already exists' });
           }
             if (user.bvn == "0") {  
-              await User.findByIdAndUpdate(req.user.userId, { kycLevel: 2 , bvn: hashedPin})
+              await User.findByIdAndUpdate(req.user.userId, { kycLevel: "2" , bvn: hashedPin})
               res.status(200).json({ message: 'KYC Level Upgraded successfully' });
             }
 
@@ -218,7 +221,6 @@ const GetBalance = async (req, res) => {
             return res.status(404).json({ error: 'Wallet not found' });
           }
           res.json({ balance: wallet.balance, accountNum:wallet.accountNumber });
-          // console.log(wallet.accountNumber)
         } catch (error) {
           res.status(500).json({ error: 'Internal server error' });
         }
@@ -332,7 +334,7 @@ const Post_transfer = async(req, res) =>{
       res.json({ message: 'Funds transferred successfully' });
     } catch (error) {
       console.error('Failed to transfer funds:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(50).json({ error: 'Internal server error' });
     }
   }
   
