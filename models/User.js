@@ -31,6 +31,7 @@ const registrationSchema = new Schema({
         type: Boolean,
         required: true,
     },
+    otp: String,
     transactionPin: String,
     kycLevel: String,
     bvn: String,

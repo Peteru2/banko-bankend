@@ -33,21 +33,16 @@ const convertPhoneToISO = (number, countryCode = "234") => {
 
     return accountNumber;
 }
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  secure: true,
-  logger: true,
-  debug: true,
-  auth: {
-    user: process.env.FROM_EMAIL,
-    pass: process.env.FROM_EMAIL_PASSWORD
-  },
-  tls: {
-    rejectUnauthorized: true
+function generateOTP(length = 6) {
+  let otp = "";
+  for (let i = 0; i < length; i++) {
+    otp += Math.floor(Math.random() * 10);
   }
-});
+  return otp;
+}
+
   module.exports = {
     convertPhoneToISO,
     generateAccountNumber,
-    transporter
+    generateOTP
   }

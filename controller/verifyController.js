@@ -6,45 +6,19 @@ const { io } = require("../server.js");
 const utils = require("../utils/index.js");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const dotenv = require("dotenv");
 const { Notification } = require("../models/Notification.js");
+const nodemailer = require("nodemailer");
 
-// dotenv.config()
-// import { v4 as uuidv4 } from 'uuid';
-
-// const users = {};
-// process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 const Post_signUp = async (req, res) => {
   try {
-    // const userId = uuidv4();
-    // const otp = process.env.OTP
-    // Math.floor(1000 + Math.random() * 9000).toString();
     const { firstname, lastname, email, phoneNumber, password } = req.body;
-
-    // users[userId] = { email, otp };
-    // const mailOptions = {
-    //   from: 'Peter <polalekan526@gmail.com>',
-    //   to: email,
-    //   subject: 'Verify your account',
-    //   text: `Your OTP is: ${otp}. Please use this OTP to verify your account.`
-    // };
-
-    // utils.transporter.sendMail(mailOptions, (error, info) => {
-    //   if (error) {
-    //     console.error('Error sending OTP:', error);
-    //     return res.status(500).json({ error: 'Failed to send OTP' });
-    //   }
-
-    //     console.log('OTP sent:', info.response);
-    //     console.log(userId)
-    //     // return res.json({ userId, otp });
-    // });
     const formattedPhoneNumber = utils.convertPhoneToISO(phoneNumber);
     if (!formattedPhoneNumber) {
       return res.status(400).json({ error: "Invalid phone number format" });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const newAccountNumber = utils.generateAccountNumber();
+    const otp = utils.generateOTP();
 
     const user = new User({
       firstname,
@@ -58,6 +32,8 @@ const Post_signUp = async (req, res) => {
       transactionPin: 0,
       bvn: 0,
       accountNumber: 0,
+      otp: otp,
+      otpExpiry: Date.now() + 10 * 60 * 1000,
     });
 
     const wallet = new Wallet({
@@ -83,6 +59,23 @@ const Post_signUp = async (req, res) => {
       await user.save();
       await wallet.save();
     }
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"Bank App" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: "Your OTP Code",
+      text: `Your OTP code is ${otp}. It will expire in 10 minutes.`,
+    });
     res.status(201).json({ message: "Account successfully Created", user });
   } catch (error) {
     console.error("Error:", error);
@@ -96,7 +89,7 @@ const Post_login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email });
-
+    const otp = utils.generateOTP();
     if (!user) {
       return res.status(404).json({ error: " User not found" });
     }
@@ -108,25 +101,41 @@ const Post_login = async (req, res) => {
 
     const userID = user._id;
     if (!user.status) {
+      await User.findByIdAndUpdate(userID, {
+        otp: otp,
+        otpExpiry: Date.now() + 10 * 60 * 1000,
+      });
+      const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"Bank App" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: "Your OTP Code",
+      text: `Your OTP code is ${otp}. It will expire in 10 minutes.`,
+    });
       return res.status(401).json({ user: userID });
     }
-
-    // say.speak('Hello, Welcome to Banko!', 'Samantha', 0.3)
-    // say.stop()
 
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET_KEY,
       { expiresIn: "1h" }
     ); // Token expires in 1 hour
-    res
-      .status(200)
-      .json({
-        success: "Exist",
-        token,
-        message: "User logged In Succesfully",
-        user,
-      });
+    res.status(200).json({
+      success: "Exist",
+      token,
+      message: "User logged In Succesfully",
+      user,
+    });
     console.log();
   } catch (error) {
     console.error("Error:", error);
@@ -142,9 +151,13 @@ const verifyOTP = async (req, res) => {
     if (!userID) {
       return res.status(404).json({ error: "User not found" });
     }
-    if (otp !== process.env.OTP) {
-      return res.status(401).json({ error: "Invalid OTP" });
-    }
+    if (userID.otp !== otp)
+      return res.status(400).json({ error: "Invalid OTP" });
+    if (Date.now() > userID.otpExpiry)
+      return res.status(400).json({ error: "OTP expired" });
+    // if (otp !== process.env.OTP) {
+    //   return res.status(401).json({ error: "Invalid OTP" });
+    // }
     await User.findByIdAndUpdate(userID, { status: true });
     res.json({ message: "Account verified, please proceed to log in" });
   } catch (error) {
@@ -260,11 +273,9 @@ const Check_transfer = async (req, res) => {
         .json({ error: "Minimum amount to transfer is 50" });
     }
     if (senderWallet.accountNumber == recipientAccountNumber) {
-      return res
-        .status(400)
-        .json({
-          error: `${recipientAccountNumber} is your Banko account number, you can only transfer to other accounts`,
-        });
+      return res.status(400).json({
+        error: `${recipientAccountNumber} is your Banko account number, you can only transfer to other accounts`,
+      });
     }
 
     // Find recipient's wallet by account number
@@ -355,7 +366,7 @@ const Post_transfer = async (req, res) => {
       status: "Successful",
     });
     await transaction.save();
-    
+
     const notification = new Notification({
       type: "fund_transfer",
       message: `You received $${amount} from ${senderWallet.user}`,
