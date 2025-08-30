@@ -1,13 +1,13 @@
 //Post_login
 const { User } = require("../models/User.js");
 const { Wallet } = require("../models/Wallet.js");
-const { Transaction } = require("../models/Transaction.js");
 const { io } = require("../server.js");
 const utils = require("../utils/index.js");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { Notification } = require("../models/Notification.js");
 const nodemailer = require("nodemailer");
+const { Transaction } = require("../models/Transaction.js");
 
 const Post_signUp = async (req, res) => {
   try {
@@ -128,7 +128,7 @@ const Post_login = async (req, res) => {
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: "1h" }
+      { expiresIn: "2h" }
     ); // Token expires in 1 hour
     res.status(200).json({
       success: "Exist",
@@ -160,21 +160,6 @@ const verifyOTP = async (req, res) => {
     // }
     await User.findByIdAndUpdate(userID, { status: true });
     res.json({ message: "Account verified, please proceed to log in" });
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-const Get_user = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    res.json({ user });
-    console.log(user);
   } catch (error) {
     console.error("Error fetching user data:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -407,12 +392,10 @@ module.exports = {
   Post_signUp,
   Post_login,
   verifyOTP,
-  Get_user,
   UpdateTransPin,
   UpdateKyc,
   GetBalance,
   Check_transfer,
   Post_transfer,
-  Transfer_history,
   notificationInfo,
 };

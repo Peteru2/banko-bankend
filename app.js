@@ -5,6 +5,10 @@ const morgan = require('morgan');
 const { Server } = require('socket.io'); // Import Socket.IO
 const connectDB = require('./db.js');
 const Controller = require('./controller/verifyController.js');
+const userController = require('./controller/userController.js');
+const transHistoryController = require('./controller/transHistoryController.js');
+
+
 const authMiddleware = require('./auth.js');
 
 const app = express();
@@ -44,10 +48,10 @@ app.post('/verifyOTP', Controller.verifyOTP);
 
 app.all('*', authMiddleware)
 
-app.get('/', authMiddleware, Controller.Get_user);
+app.get('/', authMiddleware, userController.Get_user);
 app.put('/updateTransactionPin', authMiddleware, Controller.UpdateTransPin);
 app.put('/updatekyc', authMiddleware, Controller.UpdateKyc);
 app.get('/balance', authMiddleware, Controller.GetBalance);
 app.post('/val_transfer', authMiddleware, Controller.Check_transfer);
 app.post('/transfer', authMiddleware, Controller.Post_transfer);
-app.get('/trans-history', authMiddleware, Controller.Transfer_history);
+app.get('/trans-history', authMiddleware, transHistoryController.Transfer_history);
