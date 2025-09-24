@@ -31,11 +31,12 @@ const registrationSchema = new Schema({
         type: Boolean,
         required: true,
     },
-    otp: String,
+    emailVerificationCode: String,
     transactionPin: String,
     kycLevel: String,
     bvn: String,
     accountNumber:String,
+    emailVerificationCodeExpiryDate:String,
   
 })
 const User = mongoose.model('User', registrationSchema);

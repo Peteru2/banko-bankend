@@ -44,7 +44,7 @@ io.on('connection', socket => {
 
 app.post('/SignUp', Controller.Post_signUp);
 app.post('/Login', Controller.Post_login);
-app.post('/verifyOTP', Controller.verifyOTP);
+app.post('/verifyEmail', Controller.verifyEmail);
 
 app.all('*', authMiddleware)
 

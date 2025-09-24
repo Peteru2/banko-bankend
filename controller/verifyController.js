@@ -18,7 +18,7 @@ const Post_signUp = async (req, res) => {
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const newAccountNumber = utils.generateAccountNumber();
-    const otp = utils.generateOTP();
+    const emailVerificationCode = utils.generateEmailVerificationCode();
 
     const user = new User({
       firstname,
@@ -32,8 +32,8 @@ const Post_signUp = async (req, res) => {
       transactionPin: 0,
       bvn: 0,
       accountNumber: 0,
-      otp: otp,
-      otpExpiry: Date.now() + 10 * 60 * 1000,
+      emailVerificationCode: emailVerificationCode,
+      emailVerificationCodeExpiryDate: Date.now() + 10 * 60 * 1000,
     });
 
     const wallet = new Wallet({
@@ -73,8 +73,8 @@ const Post_signUp = async (req, res) => {
     await transporter.sendMail({
       from: `"Bank App" <${process.env.EMAIL_USER}>`,
       to: user.email,
-      subject: "Your OTP Code",
-      text: `Your OTP code is ${otp}. It will expire in 10 minutes.`,
+      subject: "Email Verification Code",
+      text: `Your Email verification code is ${emailVerificationCode}. It will expire in 10 minutes.`,
     });
     res.status(201).json({ message: "Account successfully Created", user });
   } catch (error) {
@@ -89,7 +89,7 @@ const Post_login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email });
-    const otp = utils.generateOTP();
+    const emailVerificationCode = utils.generateEmailVerificationCode();
     if (!user) {
       return res.status(404).json({ error: " User not found" });
     }
@@ -102,26 +102,27 @@ const Post_login = async (req, res) => {
     const userID = user._id;
     if (!user.status) {
       await User.findByIdAndUpdate(userID, {
-        otp: otp,
-        otpExpiry: Date.now() + 10 * 60 * 1000,
+        emailVerificationCode: emailVerificationCode,
+        emailVerificationCodeExpiryDate: Date.now() + 10 * 60 * 1000,
       });
-      const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    //   const transporter = nodemailer.createTransport({
+    //   service: "gmail",
+    //   auth: {
+    //     user: process.env.EMAIL_USER,
+    //     pass: process.env.EMAIL_PASS,
+    //   },
+    //   tls: {
+    //     rejectUnauthorized: false,
+    //   },
+    // });
 
-    await transporter.sendMail({
-      from: `"Bank App" <${process.env.EMAIL_USER}>`,
-      to: user.email,
-      subject: "Your OTP Code",
-      text: `Your OTP code is ${otp}. It will expire in 10 minutes.`,
-    });
+    // await transporter.sendMail({
+    //   from: `"Banko" <${process.env.EMAIL_USER}>`,
+    //   to: user.email,
+    //   subject: "Your verification Code is",
+    //   text: `Your verification code is ${emailVerificationCode}. It will expire in 10 minutes.`,
+    // });
+    console.log(emailVerificationCode)
       return res.status(401).json({ user: userID });
     }
 
@@ -129,7 +130,7 @@ const Post_login = async (req, res) => {
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET_KEY,
       { expiresIn: "2h" }
-    ); // Token expires in 1 hour
+    ); 
     res.status(200).json({
       success: "Exist",
       token,
@@ -143,18 +144,20 @@ const Post_login = async (req, res) => {
   }
 };
 
-const verifyOTP = async (req, res) => {
+const verifyEmail = async (req, res) => {
   try {
-    const { userId, otp } = req.body;
+    const { userId, emailVerificationCode } = req.body;
     const userID = await User.findById(userId);
+    console.log(userID.emailVerificationCode)
+    console.log(emailVerificationCode)
 
     if (!userID) {
       return res.status(404).json({ error: "User not found" });
     }
-    if (userID.otp !== otp)
-      return res.status(400).json({ error: "Invalid OTP" });
-    if (Date.now() > userID.otpExpiry)
-      return res.status(400).json({ error: "OTP expired" });
+    if (userID.emailVerificationCode !== emailVerificationCode)
+      return res.status(400).json({ error: "Invalid Email Verification Code" });
+    if (Date.now() > userID.emailVerificationCodeExpiryDate)
+      return res.status(400).json({ error: "Verification Code expired" });
     // if (otp !== process.env.OTP) {
     //   return res.status(401).json({ error: "Invalid OTP" });
     // }
@@ -187,7 +190,7 @@ const UpdateTransPin = async (req, res) => {
 
 const UpdateKyc = async (req, res) => {
   try {
-    const { bvn } = req.body;
+    const { bvn } = req.body;;
     const hashedPin = await bcrypt.hash(bvn, 10);
     const user = await User.findById(req.user.userId);
 
@@ -391,7 +394,7 @@ const notificationInfo = async (req, res) => {
 module.exports = {
   Post_signUp,
   Post_login,
-  verifyOTP,
+  verifyEmail,
   UpdateTransPin,
   UpdateKyc,
   GetBalance,
